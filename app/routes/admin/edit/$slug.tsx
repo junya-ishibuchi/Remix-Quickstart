@@ -1,8 +1,15 @@
-import { useActionData, redirect, Form, useTransition } from "remix";
+import {
+  useActionData,
+  redirect,
+  Form,
+  useTransition,
+  LoaderFunction,
+  useLoaderData,
+} from "remix";
 import invariant from "tiny-invariant";
 import type { ActionFunction } from "remix";
 
-import { createPost } from "~/post";
+import { createPost, getPost, getPostAsRaw } from "~/post";
 
 type PostError = {
   title?: boolean;
@@ -19,6 +26,7 @@ export const action: ActionFunction = async ({ request }) => {
   const slug = formData.get("slug");
   const markdown = formData.get("markdown");
 
+  // TODO: This validation is duplicate of admin/new.tsx. How can we reuse it?
   const errors: PostError = {};
   if (!title) errors.title = true;
   if (!slug) errors.slug = true;
@@ -36,33 +44,40 @@ export const action: ActionFunction = async ({ request }) => {
   return redirect("/admin");
 };
 
+export const loader: LoaderFunction = async ({ params }) => {
+  invariant(params.slug, "expected params.slug");
+  return getPostAsRaw(params.slug);
+};
+
 export default function NewPost() {
   const errors = useActionData();
   const transition = useTransition();
+  const post = useLoaderData();
 
   return (
+  // TODO: This validation is duplicate of admin/new.tsx. How can we reuse it?
     <Form method="post">
       <p>
         <label>
           Post Title: {errors?.title ? <em>Title is required</em> : null}
-          <input type="text" name="title" />
+          <input type="text" name="title" defaultValue={post.title} />
         </label>
       </p>
       <p>
         <label>
           Post Slug: {errors?.slug ? <em>Slug is required</em> : null}
-          <input type="text" name="slug" />
+          <input type="text" name="slug" defaultValue={post.slug} />
         </label>
       </p>
       <p>
         <label htmlFor="markdown">Markdown:</label>{" "}
         {errors?.markdown ? <em>Markdown is required</em> : null}
         <br />
-        <textarea id="markdown" rows={20} name="markdown" />
+        <textarea id="markdown" rows={20} name="markdown" defaultValue={post.body} />
       </p>
       <p>
         <button type="submit">
-          {transition.submission ? "Creating..." : "Create Post"}
+          {transition.submission ? "Editing..." : "Edit Post"}
         </button>
       </p>
     </Form>

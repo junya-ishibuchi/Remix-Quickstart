@@ -39,7 +39,13 @@ export async function getPosts() {
   );
 }
 
-export async function getPost(slug: string) {
+type PostAsRaw = {
+  slug: string;
+  body: string;
+  title: string;
+}
+
+export async function getPostAsRaw(slug: string): Promise<PostAsRaw> {
   const filepath = path.join(postsPath, slug + ".md");
   const file = await fs.readFile(filepath);
   const { attributes, body } = parseFrontMatter(file.toString());
@@ -47,8 +53,13 @@ export async function getPost(slug: string) {
     isValidPostAttributes(attributes),
     `Post ${filepath} is missing attributes`
   );
-  const html = marked(body);
-  return { slug, html, title: attributes.title };
+  return { slug, body, title: attributes.title };
+}
+
+export async function getPost(slug: string) {
+  const post = await getPostAsRaw(slug);
+  const html = marked(post.body);
+  return { slug, html, title: post.title };
 }
 
 type NewPost = {
